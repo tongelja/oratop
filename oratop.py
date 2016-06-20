@@ -17,6 +17,7 @@
 #####################################
 
 import os, re, sys, getopt, operator, time, cx_Oracle, binascii, platform, getpass
+sys.path.append(os.path.abspath('bin'))
 import orautility
 
 
