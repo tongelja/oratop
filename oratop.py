@@ -16,27 +16,31 @@
 ###
 #####################################
 
-import os, re, sys, getopt, operator, time, cx_Oracle, binascii, platform, getpass
-sys.path.append(os.path.abspath('bin'))
-import orautility
+try:
+    import os, re, sys, operator, time, cx_Oracle, binascii, platform, getpass, argparse
+    import orautility
+except:
+    print('Unable to import python modules')
+    sys.exit(2)
 
+
+sys.path.append(os.path.abspath('bin'))
 
 ##############################
 ##
 ## Functions
 ##
 #######################################
+class input_var:
 
-##
-## usage
-##
-def usageExit(message):
-    print message
-    print "Usage:"
-    print os.path.abspath( __file__ ),  '-p <PASSWORD> -d <DB> -u <USER> [ -l <LINES> ] \n '
+    ###################
+    ###
+    ### Class for input variables
+    ### Leave as pass and use in argument parsing
+    ###
+    ############################
 
-    sys.exit(2)
-
+    pass
 
 
 def format_number(n, unit=1000):
@@ -51,16 +55,28 @@ def format_number(n, unit=1000):
     length = len(str(n))
 
     if length > 13:
-        return str(n/unit/unit/unit/unit) + 'P'
+        return str(round(n/unit/unit/unit/unit)) + 'P'
     elif length > 10:
-        return str(n/unit/unit/unit) + 'G'
+        return str(round(n/unit/unit/unit)) + 'G'
     elif length > 7:
-        return str(n/unit/unit) + 'M'
+        return str(round(n/unit/unit)) + 'M'
     elif length > 4:
-        return str(n/unit) + 'K'
+        return str(round(n/unit)) + 'K'
     else:
         return str(n)
 
+
+class color:
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    DARKCYAN = '\033[36m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
 
 def getTerminalSize():
     env = os.environ
@@ -89,26 +105,25 @@ def getTerminalSize():
 
 
 def printLabel():
-    print '\n--------------'
-    print 'top + Oracle = OraTop'
-    print '---------------------'
+    print('\n--------------')
+    print('top + Oracle = OraTop')
+    print('---------------------')
 
 
 
 def printOraTop(top_data, session_data, system_stat, system_event, top_label, top_sum, lines):
-    #top_format = '%8s %-8s %3s %3s %8s %-8s %-8s %3s %-8s %-8s %-12s %-30s %-18s %-10s %10s %10s %10s %10s %10s' 
-    top_format = '%6s  %-10s %3s %5s %5s %10s  %-26s %-16s %-10s  %8s %8s %9s %9s %9s %9s %9s %9s  %-50s' 
-    sys_format = '%-50s %-20s'
+    top_format = '{:>6}  {:<10s} {:>3} {:>5} {:>5} {:>10}  {:<26s} {:<16s} {:<10s}  {:>8} {:>8} {:>9} {:>9} {:>9} {:>9} {:>9} {:>9}  {:<50s}' 
+    sys_format = '{:<60s} {:<20}'
 
     printLabel()
 
-    print
+    print()
     for i in top_sum:
-        print  i.replace('\n', '')
+        print(i.replace('\n', ''))
 
 
-    sorted_system_stat  = sorted(system_stat.iteritems(), key=operator.itemgetter(1))
-    sorted_system_event = sorted(system_event.iteritems(), key=operator.itemgetter(1))
+    sorted_system_stat  = sorted(iter(system_stat.items()), key=operator.itemgetter(1))
+    sorted_system_event = sorted(iter(system_event.items()), key=operator.itemgetter(1))
 
 
     if len(sorted_system_stat)-5 < 0:
@@ -119,9 +134,12 @@ def printOraTop(top_data, session_data, system_stat, system_event, top_label, to
     sys_stop = len(sorted_system_stat)
     for i in range(sys_start, sys_stop):
         if i == sys_start:
-            print
-            print sys_format % ( 'DB        System Stats', 'Value Delta' ) 
-        print sys_format %  sorted_system_stat[i]
+            print()
+            print(color.BOLD + sys_format.format( 'DB        System Stats', 'Value Delta' ) + color.END) 
+        stat=sorted_system_stat[i][0]
+        value=sorted_system_stat[i][1]
+        #print( sys_format.format(sorted_system_stat[i]) )
+        print( sys_format.format(stat, value ))
 
 
     if len(sorted_system_event)-5 < 0:
@@ -132,15 +150,16 @@ def printOraTop(top_data, session_data, system_stat, system_event, top_label, to
     sys_stop = len(sorted_system_event)
     for i in range(sys_start, sys_stop):
         if i == sys_start:
-            print
-            print sys_format % ( 'DB        System Events', 'Waited Delta' )
-        print sys_format %  sorted_system_event[i]
+            print()
+            print(color.BOLD + sys_format.format( 'DB        System Events', 'Waited Delta' ) + color.END )
+        stat=sorted_system_event[i][0]
+        value=sorted_system_event[i][1]
+        print( sys_format.format(stat, value ))
+        #print(sys_format.format( sorted_system_event[i]))
 
-    print 
+    print() 
     for i in top_label:
-        print top_format %  ( i )
-
-    ##lines=len(top_data)
+        print( color.BOLD + top_format.format( *i ) + color.END )
 
     for i in range(0, lines):
 
@@ -170,10 +189,12 @@ def printOraTop(top_data, session_data, system_stat, system_event, top_label, to
                 qcsid        = ' '
                 blocker      = ' '
 
-            print top_format % ( top_data[i][0],  top_data[i][1], \
+
+            print(top_format.format( top_data[i][0],  top_data[i][1], \
                                  top_data[i][7],  top_data[i][8], \
                                  top_data[i][9],  top_data[i][10],\
-                                 str(' '.join(top_data[i][11:]))[:25], \
+                                 #str(' '.join(top_data[i][11:]))[:25], \
+                                 str(' '.join(top_data[i][11:])), \
                                  sql_id,          sid,            \
                                  qcsid,           blocker, \
                                  lst_call,        \
@@ -183,11 +204,11 @@ def printOraTop(top_data, session_data, system_stat, system_event, top_label, to
                                  format_number( blk_chg, 1024 ),         \
                                  format_number( con_chg, 1024 ),         \
                                  event[:45] 
-                               ) 
+                               )) 
         
 
-def getTopLabels():
-    top_cmd = " top -b -n 1| grep PID"
+def getTopLabels(os_user, host):
+    top_cmd = 'ssh ' + os_user + '@' + host  + ' top -b -n 1| grep PID'
     top_std_out = os.popen(top_cmd).readlines()[0].split()
     top_std_out.remove('PR')
     top_std_out.remove('NI')
@@ -213,22 +234,17 @@ def getTopLabels():
     return r
 
 
-def getTopSummary():
-    #top_cmd = " top -b -n 1| head -5 "
-    top_cmd = " top -b -n 2 | grep -v '^ *[0-9]' | grep -v PID | sed '/^$/d' | tail -5 "
+def getTopSummary(os_user, host):
+    top_cmd = 'ssh ' + os_user + '@' + host  + " top -b -n 2 | grep -v '^ *[0-9]' | grep -v PID | sed '/^$/d' | tail -5 "
     top_std_out = os.popen(top_cmd).readlines()
     r  = []
     r.append(tuple(top_std_out))
     return top_std_out
 
 
-def getTopData(db_search):
-    if db_search == '.*':
-        #top_cmd="top -c -b -n 1 -u oracle | grep -v '^[a-Z]' 2>/dev/null | grep -v PID  2>/dev/null    | sort  -k 8,9 2>/dev/null  | head -40"
-        top_cmd="top -c -b -n 1 -u oracle | grep -v '^[a-Z]' 2>/dev/null | grep -v PID  2>/dev/null    | head -100"
-    else:
-        top_cmd="top -c -b -n 1 -u oracle | grep -v '^[a-Z]' 2>/dev/null | grep -v PID 2>/dev/null | grep " + db_search + " 2>/dev/null  | head -100"
-        #top_cmd="top -c -b -n 1 -u oracle | grep oracle 2>/dev/null | sort   -k 8,9 2>/dev/null | grep " + db_search + " 2>/dev/null  | head -40"
+def getTopData(os_user, host ):
+    #top_cmd= 'ssh ' + os_user + '@' + host  + "  top -c -b -n 1 -u oracle | grep -v '^[a-zA-Z]' 2>/dev/null | grep -v PID  2>/dev/null    | head -100"
+    top_cmd= 'ssh ' + os_user + '@' + host  + "  top -c -b -n 1  | grep -v '^[a-zA-Z]' 2>/dev/null | grep -v PID  2>/dev/null    | head -100"
 
     top_std_out = os.popen(top_cmd).readlines()
     top_output = []
@@ -242,14 +258,15 @@ def getTopData(db_search):
 def getSessionData(db_connection):
     cursor = db_connection.cursor()
     ###io.block_gets, io.consistent_gets, io.physical_reads, io.block_changes, io.consistent_changes, s.event, s.last_call_et, nvl(to_char(px.qcsid), ' '), nvl(to_char(s.blocking_session), ' ') \
-    sql_stmt = "select p.spid, decode(s.sql_id, null, '', s.sql_id || '/' || s.sql_child_number), s.username, decode(s.sid, null, '', s.sid || ',' ||  s.serial#), \
+    sql_stmt = "select p.spid, decode(s.sql_id, null, '  ', s.sql_id || '/' || s.sql_child_number), s.username, decode(s.sid, null, '', s.sid || ',' ||  s.serial#), \
                 io.block_gets, io.consistent_gets, io.physical_reads, io.block_changes, io.consistent_changes,  \
                 case when s.state != 'WAITING' \
                     then 'CPU (Prev: ' || case when length(s.event) > 45 then  rpad(s.event, 45, ' ') || '...)' else s.event || ')' end \
                     else  rpad(s.event || '  (' || lower(s.wait_class) || ')' , 47, ' ') || case when length(s.event || s.wait_class ) > 45 then '...' else NULL end end as event, \
                 s.last_call_et, nvl(to_char(px.qcsid), ' '), nvl(to_char(s.blocking_session), ' ') \
                 from v$session s, v$process p, v$sess_io io, v$px_session px \
-                where s.sid = px.sid(+) and s.sid = io.sid and s.paddr = p.addr  and s.sql_id is not null"
+                where s.sid = px.sid(+) and s.sid = io.sid and s.paddr = p.addr  "
+                ##where s.sid = px.sid(+) and s.sid = io.sid and s.paddr = p.addr  and s.sql_id is not null"
     cursor.execute(sql_stmt)
     rows = cursor.fetchall()
   
@@ -302,7 +319,7 @@ def getSystemEvent(db_connection):
 def computeDelta(cur_sys, prev_sys):
 
     out = {}
-    for i in cur_sys.keys():
+    for i in list(cur_sys.keys()):
         try:
             delta = cur_sys[i] - prev_sys[i]
         except:    
@@ -313,12 +330,34 @@ def computeDelta(cur_sys, prev_sys):
 
     return out
 
-def selectFoo(db_connection):
-    cursor = db_connection.cursor()
-    sql_stmt = "select 'foo' from dual"
-    cursor.execute(sql_stmt)
-    rows = cursor.fetchall()
-    print rows[0][0]
+def getLocalDbs(os_user, host):
+    db_list = []
+
+    cmd =  'ssh ' + os_user + '@' + host  + " cat /etc/oratab | grep -v '^#' | grep -v ^$ | awk -F: '{print $1}' "
+     
+    std_output = os.popen(cmd).readlines()
+    for i in std_output:
+        db_list.append( i.replace('\n', '') )
+    
+    return db_list
+
+ 
+class hostTranslation:
+
+    ###################
+    ###
+    ### Host transation
+    ### Names in DAR need translation if scan addresses are used
+    ###
+    ############################
+
+    name = {'at12adm01vm01.dbsv.in.here.com' : 'at1201vm01-vip.dbsv.in.here.com',
+            'at12adm01vm01'                  : 'at1201vm01-vip',
+            'at13adm05vm01.dbsv.in.here.com' : 'at1305vm01-vip.dbsv.in.here.com',
+            'at13adm05vm01'                  : 'at1305vm01-vip',
+            'at12adm05vm01.dbsv.in.here.com' : 'at1205vm01-vip.dbsv.in.here.com',
+            'at12adm05vm01'                  : 'at1205vm01-vip',
+           }
 
 
 ##
@@ -326,41 +365,46 @@ def selectFoo(db_connection):
 ##
 def main():
 
-    password     = None
+    db_password  = None
     sleep_time   = 4
-    host         = str(platform.node())
-    user         = 'sys'
+    host         = None
+    os_user      = 'oracle'
+    db_user      = 'sys'
     db_search    = '.*'
-    lines        = 30 
-
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "u:p:d:l:")
-    except getopt.GetoptError, err:
-        print str(err)
-        usageExit('getopt error:')
-
-    for o, a in opts:
-        if o in ('-p'):
-            password = a
-        elif o in ('-l'):
-            lines    = int(a)
-        elif o in ('-d'):
-            db_search = a
-        elif o in ('-u'):
-            user     = a
-        else:
-            assert False, "Invalid option "
+    lines        = 40 
 
 
-    if password is None:
-        print '#############################'
-        print '##'
-        print '## Enter ' + user + ' password for DBs'
-        print '##'
-        print '#############################'
-        password   = getpass.getpass()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--db_password',          help='SysPassword')
+    parser.add_argument('--lines',                help='Lines')
+    parser.add_argument('--host',                 help='host')
+
+    args = parser.parse_args(namespace=input_var)
+
+    if input_var.db_password is not None:    db_password = input_var.db_password
+    if input_var.lines is not None:          lines = input_var.lines
+    if input_var.host is not None:           host = input_var.host
+
+
+    if db_password is None:
+        print('#############################')
+        print('##')
+        print('## Enter ' + db_user + ' password for DBs')
+        print('##')
+        print('#############################')
+        db_password   = getpass.getpass()
+
+    if os_user is None:
+        print('OS User not specified')
+        sys.exit(2)
+      
+    if host is None:
+        print('Host not specified')
+        sys.exit(2)
+
  
-    top_label = getTopLabels()
+   
+    top_label = getTopLabels(os_user, host)
 
     prev_system_event = {}
     cur_system_event  = {}
@@ -370,10 +414,13 @@ def main():
     cur_system_stat   = {}
     system_stat       = {}
 
+    count = 0 
     while 1 == 1:
 
-        top_data     = getTopData(db_search)
-        top_sum      = getTopSummary()
+        count        = count + 1
+        top_data     = getTopData(os_user, host)
+
+        top_sum      = getTopSummary(os_user, host)
 
         prev_system_event = cur_system_event
         cur_system_event  = {}
@@ -385,22 +432,26 @@ def main():
 
         session_data = {}
 
-        for i in orautility.getLocalDbs(db_search):
+        db_host = hostTranslation.name[host]
+ 
+        for i in getLocalDbs(os_user, host):
             try:
-                connect       = i + ':' + str(host) + ':' + user + ':' + password
-                db_connection = orautility.createOraConnection(connect)
+                connect       = i + ':' + db_host + ':' + db_user + ':' + db_password
+                #db_connection = orautility.createOraConnection(connect)
+                db_connection = cx_Oracle.connect(user=db_user, password=db_password, dsn=db_host + '/' + i, mode=cx_Oracle.SYSDBA )
 
                 s            = getSessionData(db_connection)
-                session_data = dict(s.items() + session_data.items())
+                session_data = dict(list(s.items()) + list(session_data.items()))
 
                 s                 = getSystemStat(db_connection)
-                cur_system_stat   = dict(s.items() + cur_system_stat.items())
+                cur_system_stat   = dict(list(s.items()) + list(cur_system_stat.items()))
 
                 s                 = getSystemEvent(db_connection)
-                cur_system_event  = dict(s.items() + cur_system_event.items())
+                cur_system_event  = dict(list(s.items()) + list(cur_system_event.items()))
 
             except Exception as e:
-                print e
+                if count > 1:
+                    print('Cannot connect to ' + i)
                 pass
 
         system_stat  = computeDelta(cur_system_stat,  prev_system_stat)
