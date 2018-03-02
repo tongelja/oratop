@@ -105,14 +105,14 @@ def getTerminalSize():
 
 
 def printLabel():
-    print('\n--------------')
-    print('top + Oracle = OraTop')
-    print('---------------------')
+    print(color.BOLD + ' ----------------------' + color.END)
+    print(color.BOLD + '| top + Oracle = OraTop |' + color.END)
+    print(color.BOLD + ' ----------------------' + color.END)
 
 
 
-def printOraTop(top_data, session_data, system_stat, system_event, top_label, top_sum, lines):
-    top_format = '{:>6}  {:<10s} {:>3} {:>5} {:>5} {:>10}  {:<26s} {:<16s} {:<10s}  {:>8} {:>8} {:>9} {:>9} {:>9} {:>9} {:>9} {:>9}  {:<50s}' 
+def printOraTop(top_data, session_data, system_stat, system_event, top_label, top_sum, lines, time_delta):
+    top_format = '{:>6}  {:<10s} {:>3} {:>5} {:>5} {:>10}  {:<20s} {:<11} {:<16s} {:<10s}  {:>8} {:>8} {:>9} {:>9} {:>9} {:>9} {:>9} {:>9}  {:<50s}' 
     sys_format = '{:<60s} {:<20}'
 
     printLabel()
@@ -135,10 +135,9 @@ def printOraTop(top_data, session_data, system_stat, system_event, top_label, to
     for i in range(sys_start, sys_stop):
         if i == sys_start:
             print()
-            print(color.BOLD + sys_format.format( 'DB        System Stats', 'Value Delta' ) + color.END) 
+            print(color.BOLD + sys_format.format( 'Instance    System Stats', 'Rate (per second)' ) + color.END) 
         stat=sorted_system_stat[i][0]
-        value=sorted_system_stat[i][1]
-        #print( sys_format.format(sorted_system_stat[i]) )
+        value=format_number( sorted_system_stat[i][1] / time_delta ) + '/Sec'
         print( sys_format.format(stat, value ))
 
 
@@ -151,11 +150,10 @@ def printOraTop(top_data, session_data, system_stat, system_event, top_label, to
     for i in range(sys_start, sys_stop):
         if i == sys_start:
             print()
-            print(color.BOLD + sys_format.format( 'DB        System Events', 'Waited Delta' ) + color.END )
+            print(color.BOLD + sys_format.format( 'Instance    System Events', 'Rate (ms per second)' ) + color.END )
         stat=sorted_system_event[i][0]
-        value=sorted_system_event[i][1]
+        value=format_number( sorted_system_event[i][1] / time_delta ) + '/Sec'
         print( sys_format.format(stat, value ))
-        #print(sys_format.format( sorted_system_event[i]))
 
     print() 
     for i in top_label:
@@ -166,6 +164,7 @@ def printOraTop(top_data, session_data, system_stat, system_event, top_label, to
         if len(top_data[i]) > 0:
             try:
                 sql_id       = session_data[top_data[i][0]]['sql_id']
+                instance     = session_data[top_data[i][0]]['instance']
                 sid          = session_data[top_data[i][0]]['sid']
                 blk_gts      = session_data[top_data[i][0]]['block_gets']
                 con_gts      = session_data[top_data[i][0]]['cons_gets']
@@ -178,6 +177,7 @@ def printOraTop(top_data, session_data, system_stat, system_event, top_label, to
                 blocker      = session_data[top_data[i][0]]['blocker']
             except:
                 sql_id       = ' '
+                instance     = ' ' 
                 sid          = ' ' 
                 blk_gts      = ' '
                 con_gts      = ' '
@@ -195,7 +195,7 @@ def printOraTop(top_data, session_data, system_stat, system_event, top_label, to
                                  top_data[i][9],  top_data[i][10],\
                                  #str(' '.join(top_data[i][11:]))[:25], \
                                  str(' '.join(top_data[i][11:])), \
-                                 sql_id,          sid,            \
+                                 instance, sql_id,          sid,            \
                                  qcsid,           blocker, \
                                  lst_call,        \
                                  format_number( blk_gts, 1024 ),         \
@@ -215,6 +215,7 @@ def getTopLabels(os_user, host):
     top_std_out.remove('VIRT')
     top_std_out.remove('RES')
     top_std_out.remove('SHR')
+    top_std_out.append('INSTANCE')
     top_std_out.append('SQL_ID/CHILD')
     top_std_out.append('SID,SERIAL')
     top_std_out.append('QCSID')
@@ -258,13 +259,14 @@ def getTopData(os_user, host ):
 def getSessionData(db_connection):
     cursor = db_connection.cursor()
     ###io.block_gets, io.consistent_gets, io.physical_reads, io.block_changes, io.consistent_changes, s.event, s.last_call_et, nvl(to_char(px.qcsid), ' '), nvl(to_char(s.blocking_session), ' ') \
-    sql_stmt = "select p.spid, decode(s.sql_id, null, '  ', s.sql_id || '/' || s.sql_child_number), s.username, decode(s.sid, null, '', s.sid || ',' ||  s.serial#), \
+    sql_stmt = "select p.spid,  \
+                decode(s.sql_id, null, '  ', s.sql_id || '/' || s.sql_child_number), s.username, decode(s.sid, null, '', s.sid || ',' ||  s.serial#), \
                 io.block_gets, io.consistent_gets, io.physical_reads, io.block_changes, io.consistent_changes,  \
                 case when s.state != 'WAITING' \
                     then 'CPU (Prev: ' || case when length(s.event) > 45 then  rpad(s.event, 45, ' ') || '...)' else s.event || ')' end \
                     else  rpad(s.event || '  (' || lower(s.wait_class) || ')' , 47, ' ') || case when length(s.event || s.wait_class ) > 45 then '...' else NULL end end as event, \
-                s.last_call_et, nvl(to_char(px.qcsid), ' '), nvl(to_char(s.blocking_session), ' ') \
-                from v$session s, v$process p, v$sess_io io, v$px_session px \
+                s.last_call_et, nvl(to_char(px.qcsid), ' '), nvl(to_char(s.blocking_session), ' '), inst.instance_name \
+                from v$session s, v$process p, v$sess_io io, v$px_session px, v$instance inst \
                 where s.sid = px.sid(+) and s.sid = io.sid and s.paddr = p.addr  "
                 ##where s.sid = px.sid(+) and s.sid = io.sid and s.paddr = p.addr  and s.sql_id is not null"
     cursor.execute(sql_stmt)
@@ -285,13 +287,14 @@ def getSessionData(db_connection):
         out[rows[i][0]]['last_call_et'] = str(rows[i][10]) 
         out[rows[i][0]]['qcsid']        = str(rows[i][11]) 
         out[rows[i][0]]['blocker']      = str(rows[i][12]) 
+        out[rows[i][0]]['instance']     = str(rows[i][13]) 
 
     return out
 
 def getSystemStat(db_connection):
 
     cursor = db_connection.cursor()
-    sql_stmt = "select rpad(lower(d.name), 10, ' ') || s.name, value from v$sysstat s, v$database d  \
+    sql_stmt = "select rpad(lower(d.instance_name), 12, ' ') || s.name, value from v$sysstat s, v$instance d  \
                 where NOT regexp_like(s.name, 'session .ga .*', 'i') and s.class not in (select wait_class# from V$SYSTEM_WAIT_CLASS where wait_class = 'Idle') "
     cursor.execute(sql_stmt)
     rows = cursor.fetchall()
@@ -305,7 +308,7 @@ def getSystemStat(db_connection):
 def getSystemEvent(db_connection):
 
     cursor = db_connection.cursor()
-    sql_stmt = "select rpad(lower(d.name), 10, ' ') || e.event, time_waited from v$system_event e, v$database d  \
+    sql_stmt = "select rpad(lower(d.instance_name), 12, ' ') || e.event, time_waited_micro from v$system_event e, v$instance d  \
                 where NOT regexp_like(e.wait_class, 'Idle', 'i') "
     cursor.execute(sql_stmt)
     rows = cursor.fetchall()
@@ -326,6 +329,12 @@ def computeDelta(cur_sys, prev_sys):
             delta = cur_sys[i]
 
         if delta > 0:
+            if delta > 10000000:
+                try:
+                    print('i= ' + str(i) + '  Current=' + str(cur_sys[i]) + '  Previous=' + str(prev_sys[i]) )
+                except:
+                    pass
+
             out[i] = delta
 
     return out
@@ -366,13 +375,14 @@ class hostTranslation:
 def main():
 
     db_password  = None
-    sleep_time   = 4
+    sleep_time   = 0
     host         = None
     os_user      = 'oracle'
     db_user      = 'sys'
     db_search    = '.*'
-    lines        = 40 
-
+    lines        = 50 
+    curr_time    = 0
+    prev_time    = 0
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--db_password',          help='SysPassword')
@@ -433,6 +443,7 @@ def main():
         session_data = {}
 
         db_host = hostTranslation.name[host]
+
  
         for i in getLocalDbs(os_user, host):
             try:
@@ -450,16 +461,20 @@ def main():
                 cur_system_event  = dict(list(s.items()) + list(cur_system_event.items()))
 
             except Exception as e:
-                if count > 1:
+                if count == 1:
                     print('Cannot connect to ' + i)
                 pass
+
+        prev_time = curr_time
+        curr_time=time.time()
+        time_delta = curr_time - prev_time
 
         system_stat  = computeDelta(cur_system_stat,  prev_system_stat)
         system_event = computeDelta(cur_system_event, prev_system_event)
 
         os.system('clear')
 
-        printOraTop(top_data, session_data, system_stat, system_event, top_label, top_sum, lines)
+        printOraTop(top_data, session_data, system_stat, system_event, top_label, top_sum, lines, time_delta)
 
         time.sleep(sleep_time)
 
