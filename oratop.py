@@ -18,7 +18,6 @@
 
 try:
     import os, re, sys, operator, time, cx_Oracle, binascii, platform, getpass, argparse
-    import orautility
 except:
     print('Unable to import python modules')
     sys.exit(2)
