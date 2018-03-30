@@ -16,7 +16,13 @@ https://github.com/tongelja/oratop.git
 
 ### Prerequisites
 
-You will need to have cx_Oracle installed.
+You will need to have the following software installed:
+
+*  Python3 (https://www.python.org/downloads/)
+*  cx_Oracle module
+   ```
+   python3 -m pip install cx_Oracle --upgrade
+   ```
 
 
 ## Running OraTop
