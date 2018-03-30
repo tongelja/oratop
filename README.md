@@ -19,6 +19,7 @@ https://github.com/tongelja/oratop.git
 You will need to have the following software installed:
 
 *  Python3 (https://www.python.org/downloads/)
+*  Pip (https://pip.pypa.io/en/stable/installing/)
 *  cx_Oracle module
    ```
    python3 -m pip install cx_Oracle --upgrade
