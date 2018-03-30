@@ -4,16 +4,6 @@ OraTop is an interface that takes data from top and Oracle databases on a host. 
 
 
 
-## Getting Started
-
-To get started, clone the repo:
-
-```
-https://github.com/tongelja/oratop.git
-```
-
-
-
 ### Prerequisites
 
 You will need to have the following software installed:
@@ -24,6 +14,17 @@ You will need to have the following software installed:
    ```
    python3 -m pip install cx_Oracle --upgrade
    ```
+
+
+## Getting Started
+
+To get started, clone the repo:
+
+```
+git clone https://github.com/tongelja/oratop.git
+```
+
+
 
 
 ## Running OraTop
