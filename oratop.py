@@ -454,42 +454,12 @@ class hostTranslation:
     ###################
     ###
     ### Host transation
-    ### Names in DAR need translation if scan addresses are used
+    ### Names in the environment need translation if the admin network interface is blocked for SQLPLUS connections.  
+    ### Use the hostname and translate a VIP for the hostname to use.
     ###
     ############################
 
-    name = {'at12adm01vm01.dbsv.in.here.com' : 'at1201vm01-vip.dbsv.in.here.com',
-            'at12adm02vm01.dbsv.in.here.com' : 'at1202vm01-vip.dbsv.in.here.com',
-            'at12adm03vm01.dbsv.in.here.com' : 'at1203vm01-vip.dbsv.in.here.com',
-            'at12adm04vm01.dbsv.in.here.com' : 'at1204vm01-vip.dbsv.in.here.com',
-            'at12adm05vm01.dbsv.in.here.com' : 'at1205vm01-vip.dbsv.in.here.com',
-            'at12adm06vm01.dbsv.in.here.com' : 'at1206vm01-vip.dbsv.in.here.com',
-            'at12adm07vm01.dbsv.in.here.com' : 'at1207vm01-vip.dbsv.in.here.com',
-            'at12adm08vm01.dbsv.in.here.com' : 'at1208vm01-vip.dbsv.in.here.com',
-            'at12adm01vm01'                  : 'at1201vm01-vip',
-            'at12adm02vm01'                  : 'at1202vm01-vip',
-            'at12adm03vm01'                  : 'at1203vm01-vip',
-            'at12adm04vm01'                  : 'at1204vm01-vip',
-            'at12adm05vm01'                  : 'at1205vm01-vip',
-            'at12adm06vm01'                  : 'at1206vm01-vip',
-            'at12adm07vm01'                  : 'at1207vm01-vip',
-            'at12adm08vm01'                  : 'at1208vm01-vip',
-            'at13adm01vm01.dbsv.in.here.com' : 'at1301vm01-vip.dbsv.in.here.com',
-            'at13adm02vm01.dbsv.in.here.com' : 'at1302vm01-vip.dbsv.in.here.com',
-            'at13adm03vm01.dbsv.in.here.com' : 'at1303vm01-vip.dbsv.in.here.com',
-            'at13adm04vm01.dbsv.in.here.com' : 'at1304vm01-vip.dbsv.in.here.com',
-            'at13adm05vm01.dbsv.in.here.com' : 'at1305vm01-vip.dbsv.in.here.com',
-            'at13adm06vm01.dbsv.in.here.com' : 'at1306vm01-vip.dbsv.in.here.com',
-            'at13adm07vm01.dbsv.in.here.com' : 'at1307vm01-vip.dbsv.in.here.com',
-            'at13adm08vm01.dbsv.in.here.com' : 'at1308vm01-vip.dbsv.in.here.com',
-            'at13adm01vm01'                  : 'at1301vm01-vip',
-            'at13adm02vm01'                  : 'at1302vm01-vip',
-            'at13adm03vm01'                  : 'at1303vm01-vip',
-            'at13adm04vm01'                  : 'at1304vm01-vip',
-            'at13adm05vm01'                  : 'at1305vm01-vip',
-            'at13adm06vm01'                  : 'at1306vm01-vip',
-            'at13adm07vm01'                  : 'at1307vm01-vip',
-            'at13adm08vm01'                  : 'at1308vm01-vip',
+    name = {'HOSTNAME' : 'HOSTNAME-VIP',
            }
 
 
